@@ -4,17 +4,17 @@ import numpy as np
 from numpy import cos, sin
 from math import floor
 
-#img = mpimg.imread("CatTest2.jpg")
-img = mpimg.imread("BlackWhiteHeartTest.jpg")
+#img = mpimg.imread("CatTest.jpg")
+img = mpimg.imread("CatTest2.jpg")
+#img = mpimg.imread("BlackWhiteHeartTest.jpg")
 
 # Convert to grayscale
 global image
 image = np.dot(img[..., :3], [0.2989, 0.5870, 0.1140])
 
 height = min(image.shape)
-numpoints = 2**6
-numlines = 250
-maxvalue = 42
+numpoints = 2*(2**6+1)
+maxvalue = 200
 factor = maxvalue/256
 
 def cleanImage():
@@ -108,7 +108,7 @@ def generateLines():
             pointIndex = nextPoint
     substractLine(linePixels)
     res.append(linePoints)
-    while(counter < numlines):
+    while(np.sum(image) > 0):
         counter += 1
         print(counter, ": ", np.sum(image))
         linePoints = ((0,0),(0,0))
@@ -132,10 +132,14 @@ circle = generateCircle(numpoints=numpoints)
 
 fig, ax = plt.subplots()
 
+ax.set_aspect('equal')
+
 lines = generateLines()
 
+plt.axis('off')
+
 for x, y in lines:
-    plt.plot(x, y, 'b-')
+    plt.plot(x, y, color='black', linewidth=0.5)
 
 for (x, y) in circle:
     plt.plot(x, y, 'bo')
