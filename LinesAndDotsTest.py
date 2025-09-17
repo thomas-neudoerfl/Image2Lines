@@ -4,6 +4,7 @@ import numpy as np
 from numpy import cos, sin
 from math import floor
 
+#img = mpimg.imread("CatTest2.jpg")
 img = mpimg.imread("BlackWhiteHeartTest.jpg")
 
 # Convert to grayscale
@@ -12,6 +13,7 @@ image = np.dot(img[..., :3], [0.2989, 0.5870, 0.1140])
 
 height = min(image.shape)
 numpoints = 2**6
+numlines = 250
 maxvalue = 42
 factor = maxvalue/256
 
@@ -49,47 +51,80 @@ def sumOfLine(line):
 def substractLine(line):
     global image
     for pixel in line:
-        image[pixel[0]][pixel[1]] -= 1
+        if image[pixel[0]][pixel[1]] > 0:
+            image[pixel[0]][pixel[1]] -= 1
+        else:
+            image[pixel[0]][pixel[1]] -= (1 + abs(image[pixel[0]][pixel[1]]))
 
+def bestLineFromPoint(pointIndex, minIndex = 0):
+    maxSum = -np.infty
+    linePoints = (([0, 0]), ([0, 0]))
+    linePixels = []
+    nextPoint = -1
+    for j in range(minIndex, numpoints):
+        if j == pointIndex:
+            break
+        line = []
+        x0, y0 = circle[pointIndex]
+        x1, y1 = circle[j]
+        pointA = mapCoordsToIndices(x0, y0)
+        pointB = mapCoordsToIndices(x1, y1)
+        if pointA[0]>pointB[0]:
+            pointA, pointB = pointB, pointA
+        i0, j0 = pointA
+        i1, j1 = pointB
+
+        if i1 == i0:
+            jmin = min(j0, j1)
+            jmax = max(j0, j1)
+            for jndex in range(jmin, jmax+1):
+                line.append((i0, jndex))
+        else:
+            slope = (j1-j0)/(i1-i0)
+            for index in range(i0, i1+1):
+                line.append((index, min(height-1, floor(slope*index + j0 - slope*i0))))
+        tmaxSum = sumOfLine(line)/len(line) if (len(line) > 0) else -np.infty
+        if tmaxSum > maxSum:
+            maxSum = tmaxSum
+            linePoints = (([x0, x1]), ([y0, y1]))
+            linePixels = line
+            nextPoint = j
+    return maxSum, linePoints, linePixels, nextPoint
+        
 def generateLines():
     global image
     res = []
     counter = 0
-    while(np.sum(image) > 0):
+    pointIndex = -1
+    linePoints = ((0,0),(0,0))
+    maxSum = -np.infty
+    linePixels = []
+    for i in range(numpoints-1):
+        tmaxSum, tlinePoints, line, nextPoint = bestLineFromPoint(i, i+1)
+        if len(line) > 0 and tmaxSum > maxSum:
+            maxSum = tmaxSum
+            linePoints = tlinePoints
+            linePixels = line
+            pointIndex = nextPoint
+    substractLine(linePixels)
+    res.append(linePoints)
+    while(counter < numlines):
         counter += 1
         print(counter, ": ", np.sum(image))
         linePoints = ((0,0),(0,0))
         maxSum = -np.infty
         linePixels = []
         for i in range(numpoints-1):
-            for j in range(i+1, numpoints):
-                line = []
-                x0, y0 = circle[i]
-                x1, y1 = circle[j]
-                pointA = mapCoordsToIndices(x0, y0)
-                pointB = mapCoordsToIndices(x1, y1)
-                if pointA[0]>pointB[0]:
-                    pointA, pointB = pointB, pointA
-                i0, j0 = pointA
-                i1, j1 = pointB
-
-                if i1 == i0:
-                    jmin = min(j0, j1)
-                    jmax = max(j0, j1)
-                    for jndex in range(jmin, jmax+1):
-                        line.append((i0, jndex))
-                else:
-                    slope = (j1-j0)/(i1-i0)
-                    for index in range(i0, i1+1):
-                        line.append((index, min(height-1, floor(slope*index + j0 - slope*i0))))
-                if len(line) > 0 and sumOfLine(line)/len(line) > maxSum:
-                    maxSum = sumOfLine(line)/len(line)
-                    linePoints = (([x0, x1]), ([y0, y1]))
-                    linePixels = line
+            tmaxSum, tlinePoints, line, nextPoint = bestLineFromPoint(i, i+1)
+            if len(line) > 0 and tmaxSum > maxSum:
+                maxSum = tmaxSum
+                linePoints = tlinePoints
+                linePixels = line
+                pointIndex = nextPoint
         substractLine(linePixels)
         res.append(linePoints)
+        
     return res
-
 
 cleanImage()
 
