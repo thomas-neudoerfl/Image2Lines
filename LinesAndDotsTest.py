@@ -1,21 +1,23 @@
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+from skimage.draw import line as bresenham_line
 import numpy as np
 from numpy import cos, sin
 from math import floor
 
 #img = mpimg.imread("CatTest.jpg")
-img = mpimg.imread("CatTest2.jpg")
-#img = mpimg.imread("BlackWhiteHeartTest.jpg")
+#img = mpimg.imread("CatTest2.jpg")
+img = mpimg.imread("BlackWhiteHeartTest.jpg")
 
 # Convert to grayscale
 global image
 image = np.dot(img[..., :3], [0.2989, 0.5870, 0.1140])
 
 height = min(image.shape)
-numpoints = 2*(2**6+1)
-maxvalue = 200
+numpoints = 2*(2**5+1)
+maxvalue = 300
 factor = maxvalue/256
+cache = []
 
 def cleanImage():
     global image
@@ -48,23 +50,40 @@ def sumOfLine(line):
         res += image[pixel[0]][pixel[1]]
     return res
 
-def substractLine(line):
+def subtractLine(rr, cc):
     global image
-    for pixel in line:
-        if image[pixel[0]][pixel[1]] > 0:
-            image[pixel[0]][pixel[1]] -= 1
-        else:
-            image[pixel[0]][pixel[1]] -= (1 + abs(image[pixel[0]][pixel[1]]))
+    image[rr, cc] = image[rr, cc] - 1
 
-def bestLineFromPoint(pointIndex, minIndex = 0):
+def precomputeLines():
+    cache = {}
+    for i in range(numpoints):
+        for j in range(i + 1, numpoints):
+            x0, y0 = circle[i]
+            x1, y1 = circle[j]
+            pointA = mapCoordsToIndices(x0, y0)
+            pointB = mapCoordsToIndices(x1, y1)
+            if pointA[0]>pointB[0]:
+                pointA, pointB = pointB, pointA
+            i0, j0 = pointA
+            i1, j1 = pointB
+            rr, cc = bresenham_line(i0, j0, i1, j1)
+            cache[(i, j)] = (rr, cc)
+    return cache
+
+def line_score(rr, cc):
+    return np.mean(image[rr, cc]) if len(rr) > 0 else -np.inf  
+
+def bestLineFromPoint(pointIndex, minIndex = 0, cache=[]):
     maxSum = -np.infty
     linePoints = (([0, 0]), ([0, 0]))
     linePixels = []
     nextPoint = -1
     for j in range(minIndex, numpoints):
         if j == pointIndex:
-            break
-        line = []
+            continue
+        
+        rr, cc = cache[(min(pointIndex, j), max(pointIndex, j))]
+        """
         x0, y0 = circle[pointIndex]
         x1, y1 = circle[j]
         pointA = mapCoordsToIndices(x0, y0)
@@ -83,58 +102,59 @@ def bestLineFromPoint(pointIndex, minIndex = 0):
             slope = (j1-j0)/(i1-i0)
             for index in range(i0, i1+1):
                 line.append((index, min(height-1, floor(slope*index + j0 - slope*i0))))
-        tmaxSum = sumOfLine(line)/len(line) if (len(line) > 0) else -np.infty
+        """
+        tmaxSum = np.mean(image[rr, cc]) if len(rr) > 0 else -np.inf  
         if tmaxSum > maxSum:
             maxSum = tmaxSum
+            x0, y0 = circle[pointIndex]
+            x1, y1 = circle[j]
             linePoints = (([x0, x1]), ([y0, y1]))
-            linePixels = line
+            linePixels = rr, cc
             nextPoint = j
     return maxSum, linePoints, linePixels, nextPoint
         
-def generateLines():
+def generateLines(cache):
     global image
     res = []
     counter = 0
     pointIndex = -1
     linePoints = ((0,0),(0,0))
     maxSum = -np.infty
-    linePixels = []
+    cc, rr = None, None
     for i in range(numpoints-1):
-        tmaxSum, tlinePoints, line, nextPoint = bestLineFromPoint(i, i+1)
+        tmaxSum, tlinePoints, line, nextPoint = bestLineFromPoint(i, i+1, cache)
         if len(line) > 0 and tmaxSum > maxSum:
             maxSum = tmaxSum
             linePoints = tlinePoints
-            linePixels = line
+            cc, rr = line
             pointIndex = nextPoint
-    substractLine(linePixels)
+    subtractLine(cc, rr)
     res.append(linePoints)
     while(np.sum(image) > 0):
         counter += 1
         print(counter, ": ", np.sum(image))
-        linePoints = ((0,0),(0,0))
-        maxSum = -np.infty
-        linePixels = []
-        for i in range(numpoints-1):
-            tmaxSum, tlinePoints, line, nextPoint = bestLineFromPoint(i, i+1)
-            if len(line) > 0 and tmaxSum > maxSum:
-                maxSum = tmaxSum
-                linePoints = tlinePoints
-                linePixels = line
-                pointIndex = nextPoint
-        substractLine(linePixels)
+        cc, rr = None, None
+        tmaxSum, tlinePoints, line, nextPoint = bestLineFromPoint(pointIndex=pointIndex, cache = cache)
+        linePoints = tlinePoints
+        cc, rr = line
+        pointIndex = nextPoint
+        subtractLine(cc, rr)
         res.append(linePoints)
         
     return res
 
 cleanImage()
 
+
 circle = generateCircle(numpoints=numpoints)
+
+cache = precomputeLines()
 
 fig, ax = plt.subplots()
 
 ax.set_aspect('equal')
 
-lines = generateLines()
+lines = generateLines(cache)
 
 plt.axis('off')
 
