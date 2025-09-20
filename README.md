@@ -1,6 +1,6 @@
 # String Art Generator 🎨🧵
 
-This project recreates the effect of **string art** — drawings made by connecting points on a circular frame with straight lines — using image processing and a greedy algorithm.
+This project recreates the effect of **string art** (drawings made by connecting points on a circular frame with straight lines) using image processing and a greedy algorithm.
 
 It takes an image, simplifies it into a grayscale intensity map, and then iteratively draws lines between pegs on a circle to approximate the original image. The result looks like an image "stitched" with thread.
 
@@ -11,7 +11,7 @@ It takes an image, simplifies it into a grayscale intensity map, and then iterat
 * Converts any image into a **string art representation**.
 * Uses **Bresenham’s line algorithm** for efficient pixel traversal.
 * Supports both **static output** (final drawing) and **animated rendering** (watch the art being created line by line).
-* Exports **line instructions** as a text file — can be used to physically recreate the artwork.
+* Exports **line instructions** as a text file => can be used to physically recreate the artwork.
 
 ---
 
@@ -21,7 +21,7 @@ It takes an image, simplifies it into a grayscale intensity map, and then iterat
 * Libraries:
 
   ```bash
-  pip install matplotlib scikit-image numpy
+  pip install matplotlib scikit-image numpy tkinter
   ```
 
 ---
@@ -37,7 +37,7 @@ python string_art.py
 * By default, it loads `Pablo1.jpg` (replace with your own image).
 * The program processes the image, generates circle points, and finds the best sequence of lines.
 * The final string art visualization will be displayed with `matplotlib`.
-* Optionally, it will prompt you to save the **list of line instructions**.
+* It will prompt you to save the **list of line instructions**.
 
 To watch the artwork appear line by line:
 
