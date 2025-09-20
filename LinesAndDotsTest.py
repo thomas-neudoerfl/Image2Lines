@@ -1,9 +1,11 @@
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+from matplotlib.animation import FuncAnimation
 from skimage.draw import line as bresenham_line
 import numpy as np
 from numpy import cos, sin
-from math import floor
+from tkinter import filedialog
+import os
 
 class StringArt:
     def __init__(self, img_path):
@@ -12,8 +14,8 @@ class StringArt:
         image = np.dot(img[..., :3], [0.2989, 0.5870, 0.1140])
         
         self.height = min(image.shape)
-        self.numpoints = 2**7
-        self.maxvalue = 4
+        self.numpoints = 4*60
+        self.maxvalue = 12
         self.factor = self.maxvalue/256
         self.circle = []
         self.cache = {}
@@ -72,13 +74,13 @@ class StringArt:
     def line_score(self, rr, cc):
         return np.mean(image[rr, cc]) if len(rr) > 0 else -np.inf  
 
-    def bestLineFromPoint(self, pointIndex, minIndex = 0, cache=[]):
+    def bestLineFromPoint(self, pointIndex, minIndex = 0, cache=[], instructions= []):
         maxSum = -np.infty
         linePoints = (([0, 0]), ([0, 0]))
         linePixels = []
         nextPoint = -1
         for j in range(minIndex, self.numpoints):
-            if j == pointIndex:
+            if j == pointIndex or (pointIndex, j) in instructions or (j, pointIndex) in instructions:
                 continue
             rr, cc = cache[(min(pointIndex, j), max(pointIndex, j))]
             tmaxSum = np.mean(image[rr, cc]) if len(rr) > 0 else -np.inf  
@@ -93,35 +95,81 @@ class StringArt:
 
     def generateLines(self, cache):
         global image
-        res = []
-        counter = 0
         pointIndex = -1
-        linePoints = ((0,0),(0,0))
         maxSum = -np.infty
         cc, rr = None, None
+        startIndex = None
+        instructions = []
+        res = []
         for i in range(self.numpoints-1):
-            tmaxSum, tlinePoints, line, nextPoint = self.bestLineFromPoint(i, i+1, cache)
+            tmaxSum, newlinePoints, line, nextPoint = self.bestLineFromPoint(i, i+1, cache)
             if len(line) > 0 and tmaxSum > maxSum:
                 maxSum = tmaxSum
-                linePoints = tlinePoints
+                linePoints = newlinePoints
                 cc, rr = line
                 pointIndex = nextPoint
-        self.subtractLine(cc, rr)
+                startIndex = i
         res.append(linePoints)
-        while(np.sum(image) > 0):
-            counter += 1
-            print(counter, ": ", np.sum(image))
-            tmaxSum, tlinePoints, line, nextPoint = self.bestLineFromPoint(pointIndex=pointIndex, cache=cache)
+        self.subtractLine(cc, rr)
+        instructions.append((startIndex, pointIndex))
+        #yield linePoints, instructions
+
+        counter = 0
+        csum = np.sum(image)
+        while csum > 0:
+            counter+=1
+            print(counter, ": ", csum)
+            tmaxSum, tlinePoints, line, nextPoint = self.bestLineFromPoint(pointIndex=pointIndex, cache=cache, instructions=instructions)
+            instructions.append((pointIndex, nextPoint))
             linePoints = tlinePoints
             cc, rr = line
             pointIndex = nextPoint
             self.subtractLine(cc, rr)
+            csum = np.sum(image)
             res.append(linePoints)
-        return res
+        #yield linePoints, instructions
+        return res, instructions
 
+    def generateInstructions(self, instructions):
+        filePath = filedialog.asksaveasfilename(defaultextension='.txt', filetypes=[("Text files", "*.txt")])
+        with open(filePath, 'w') as file:
+            file.write(str(instructions))
+
+def animate():
+    sa = StringArt("Pablo1.jpg")
+    #sa = StringArt("BlackWhiteHeartTest.jpg")
+    sa.cleanImage()
+    sa.circle = sa.generateCircle(numpoints=sa.numpoints)
+    sa.cache = sa.precomputeLines()
+
+    fig, ax = plt.subplots()
+    ax.set_aspect('equal')
+    plt.axis('off')
+
+    # Draw circle points once
+    for (x, y) in sa.circle:
+        ax.plot(x, y, 'bo', markersize=2)
+
+    # Convert generator to iterator
+    line_generator = sa.generateLines(sa.cache)
+
+    # Keep track of all drawn lines
+    drawn_lines = []
+
+    def update(frame):
+        try:
+            x, y = next(line_generator)   # get next line
+            line, = ax.plot(x, y, color='black', linewidth=0.08)
+            drawn_lines.append(line)
+            return drawn_lines   # return ALL lines so far
+        except StopIteration:
+            return drawn_lines
+
+    ani = FuncAnimation(fig, update, blit=True, interval=50, repeat=False)
+    plt.show()
 
 def main():
-    sa = StringArt("CatTest.jpg")
+    sa = StringArt("Pablo1.jpg")
     #sa = StringArt("BlackWhiteHeartTest.jpg")
     sa.cleanImage()
     sa.circle = sa.generateCircle(numpoints=sa.numpoints)
@@ -130,14 +178,16 @@ def main():
     fig, ax = plt.subplots()
     ax.set_aspect('equal')
 
-    lines = sa.generateLines(sa.cache)
+    lines, instructions = sa.generateLines(sa.cache)
+     
+    sa.generateInstructions(instructions)
 
     plt.axis('off')
     for x, y in lines:
-        plt.plot(x, y, color='black', linewidth=0.05)
+        plt.plot(x, y, color='black', linewidth=0.1)
     for (x, y) in sa.circle:
         plt.plot(x, y, 'bo')
-    plt.show()
+    plt.show()    
 
 
 if __name__ == "__main__":
