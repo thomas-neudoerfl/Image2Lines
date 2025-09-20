@@ -1,4 +1,4 @@
-# String Art Generator 🎨🧵
+# String Art Generator 
 
 This project recreates the effect of **string art** (drawings made by connecting points on a circular frame with straight lines) using image processing and a greedy algorithm.
 
@@ -6,7 +6,7 @@ It takes an image, simplifies it into a grayscale intensity map, and then iterat
 
 ---
 
-## ✨ Features
+## Features
 
 * Converts any image into a **string art representation**.
 * Uses **Bresenham’s line algorithm** for efficient pixel traversal.
@@ -15,7 +15,7 @@ It takes an image, simplifies it into a grayscale intensity map, and then iterat
 
 ---
 
-## ⚙️ Requirements
+## Requirements
 
 * Python 3.8+
 * Libraries:
@@ -26,7 +26,7 @@ It takes an image, simplifies it into a grayscale intensity map, and then iterat
 
 ---
 
-## 🚀 Usage
+## Usage
 
 Run the main script:
 
@@ -47,7 +47,7 @@ animate()
 
 ---
 
-## 📂 Example Output
+## Example Output
 
 * **Final drawing:** clean string art visualization.
 * **Animation:** progressive construction of the image.
@@ -55,7 +55,7 @@ animate()
 
 ---
 
-## 🧩 Notes
+## Notes
 
 * Images work best in **black & white** or high-contrast mode.
 * You can adjust parameters like:
