@@ -18,7 +18,7 @@ class StringArt:
         
         self.height = min(image.shape)
         self.numpoints = 4*60
-        self.maxvalue = 12
+        self.maxvalue = 50
         self.factor = self.maxvalue/256
         self.circle = []
         self.cache = {}
@@ -181,6 +181,10 @@ def animate():
     ani = FuncAnimation(fig, update, blit=True, interval=50, repeat=False)
     plt.show()
 
+def exit_program():
+    root.destroy()
+    quit()
+    
 def plotFromInstructions():
     file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.jpg")])
     sa = StringArt(file_path)
@@ -204,8 +208,9 @@ def plotFromInstructions():
         plt.plot(x, y, 'bo')
     plt.show()
 
+
 def plotStringArt():
-    global progress
+    global progress, linewidth_var, line_objects, fig
     progress.set(0)
     file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.jpg")])
     sa = StringArt(file_path)
@@ -223,66 +228,88 @@ def plotStringArt():
 
     def openInstructions():
         sa.generateInstructions(instructions)
-        
-    
+
     success_dialog = tk.Toplevel()
     success_dialog.title("Success")
-    
+
     path_label = tk.Label(success_dialog, text=f"Generate instructions", wraplength=400)
     path_label.pack(pady=10)
-    
+
     button_frame = tk.Frame(success_dialog)
     button_frame.pack(pady=10)
-    
+
     open_button = tk.Button(button_frame, text="Instructions", command=openInstructions)
     open_button.pack(side=tk.LEFT, padx=10)
-    
+
     close_button = tk.Button(button_frame, text="Close", command=success_dialog.destroy)
     close_button.pack(side=tk.RIGHT, padx=10)
-    
-    
-    
 
     plt.axis('off')
+    lw = linewidth_var.get()
+    line_objects = []
     for x, y in lines:
-        plt.plot(x, y, color='black', linewidth=0.1)
+        line, = ax.plot(x, y, color='black', linewidth=lw)
+        line_objects.append(line)
     for (x, y) in sa.circle:
-        plt.plot(x, y, 'bo')
-    plt.show()    
+        ax.plot(x, y, 'bo')
+    plt.show()
 
-def exit_program():
-    root.destroy()
-    quit()
+    def update_linewidth():
+        new_lw = linewidth_var.get()
+        for line in line_objects:
+            line.set_linewidth(new_lw)
+        fig.canvas.draw_idle()
+
+    update_button = tk.Button(success_dialog, text="Update Line Width", command=update_linewidth)
+    update_button.pack(pady=10)
+
+    progress.set(0)
+    root.update_idletasks()
+
+
+
+def update_main_linewidth():
+    global line_objects, fig, linewidth_var
+    if line_objects and fig:
+        new_lw = linewidth_var.get()
+        for line in line_objects:
+            line.set_linewidth(new_lw)
+        fig.canvas.draw_idle()
 
 def main():
-    try:
-        global root, progress
-        root = tk.Tk()
-        root.title("String Art Generator")
         
-        title_label = tk.Label(root, text="String Art Generator", font=("Helvetica", 16, "bold"))
-        title_label.pack(pady=10)
-        
-        button_frame = tk.Frame(root)
-        button_frame.pack(pady=20)
-        
-        instructions_button = tk.Button(button_frame, text="Regenerate", command=plotFromInstructions, width=15)
-        instructions_button.pack(side=tk.LEFT, padx=10)
-        
-        select_button = tk.Button(button_frame, text="Select .jpg File", command=plotStringArt, width=15, bg="green", fg="white")
-        select_button.pack(side=tk.LEFT, padx=10)
-        
-        exit_button = tk.Button(button_frame, text="Exit", command=exit_program, width=15, bg="red", fg="white")
-        exit_button.pack(side=tk.LEFT, padx=10)
-    except Exception as e:
-        messagebox.showerror("Error", str(e))
+    global root, progress, linewidth_var, line_objects, fig
+    root = tk.Tk()
+    root.title("String Art Generator")
+    
+    title_label = tk.Label(root, text="String Art Generator", font=("Helvetica", 16, "bold"))
+    title_label.pack(pady=10)
+    
+    button_frame = tk.Frame(root)
+    button_frame.pack(pady=20)
+    
+    instructions_button = tk.Button(button_frame, text="Regenerate", command=plotFromInstructions, width=15)
+    instructions_button.pack(side=tk.LEFT, padx=10)
+    
+    select_button = tk.Button(button_frame, text="Select .jpg File", command=plotStringArt, width=15, bg="green", fg="white")
+    select_button.pack(side=tk.LEFT, padx=10)
+    
+    exit_button = tk.Button(button_frame, text="Exit", command=exit_program, width=15, bg="red", fg="white")
+    exit_button.pack(side=tk.LEFT, padx=10)
+
+    linewidth_var = tk.DoubleVar(value=0.1)
+    linewidth_label = tk.Label(root, text="Line Width:")
+    linewidth_label.pack()
+    linewidth_slider = tk.Scale(root, variable=linewidth_var, from_=0.01, to=2.0, resolution=0.01, orient=tk.HORIZONTAL)
+    linewidth_slider.pack(fill=tk.X, padx=20)
+
+    update_main_lw_button = tk.Button(root, text="Update Line Width", command=update_main_linewidth)
+    update_main_lw_button.pack(pady=5)
 
     progress = tk.IntVar()
     progressbar = ttk.Progressbar(variable=progress)
     progressbar.pack(pady=10, fill=tk.X, padx=20)
-
-
-        
+    
     root.mainloop()
 
 if __name__ == "__main__":
