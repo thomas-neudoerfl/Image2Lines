@@ -154,7 +154,6 @@ class StringArt:
 
 def animate():
     sa = StringArt("Pablo1.jpg")
-    #sa = StringArt("BlackWhiteHeartTest.jpg")
     sa.cleanImage()
     sa.circle = sa.generateCircle(numpoints=sa.numpoints)
     sa.cache = sa.precomputeLines()
@@ -163,22 +162,19 @@ def animate():
     ax.set_aspect('equal')
     plt.axis('off')
 
-    # Draw circle points once
     for (x, y) in sa.circle:
         ax.plot(x, y, 'bo', markersize=2)
 
-    # Convert generator to iterator
     line_generator = sa.generateLines(sa.cache)
 
-    # Keep track of all drawn lines
     drawn_lines = []
 
     def update(frame):
         try:
-            x, y = next(line_generator)   # get next line
+            x, y = next(line_generator) 
             line, = ax.plot(x, y, color='black', linewidth=0.08)
             drawn_lines.append(line)
-            return drawn_lines   # return ALL lines so far
+            return drawn_lines
         except StopIteration:
             return drawn_lines
 
@@ -188,7 +184,6 @@ def animate():
 def plotFromInstructions():
     file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.jpg")])
     sa = StringArt(file_path)
-    #sa = StringArt("BlackWhiteHeartTest.jpg")
     sa.cleanImage()
     sa.circle = sa.generateCircle(numpoints=sa.numpoints)
     sa.cache = sa.precomputeLines()
@@ -214,8 +209,6 @@ def plotStringArt():
     progress.set(0)
     file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.jpg")])
     sa = StringArt(file_path)
-    #sa = StringArt("Pablo1.jpg")
-    #sa = StringArt("BlackWhiteHeartTest.jpg")
     sa.cleanImage()
     sa.circle = sa.generateCircle(numpoints=sa.numpoints)
     sa.cache = sa.precomputeLines()
@@ -227,9 +220,26 @@ def plotStringArt():
 
     progress.set(100)
     root.update_idletasks()
-    
-    sa.generateInstructions(instructions)
+
+    def openInstructions():
+        sa.generateInstructions(instructions)
         
+    
+    success_dialog = tk.Toplevel()
+    success_dialog.title("Success")
+    
+    path_label = tk.Label(success_dialog, text=f"Generate instructions", wraplength=400)
+    path_label.pack(pady=10)
+    
+    button_frame = tk.Frame(success_dialog)
+    button_frame.pack(pady=10)
+    
+    open_button = tk.Button(button_frame, text="Instructions", command=openInstructions)
+    open_button.pack(side=tk.LEFT, padx=10)
+    
+    close_button = tk.Button(button_frame, text="Close", command=success_dialog.destroy)
+    close_button.pack(side=tk.RIGHT, padx=10)
+    
     
     
 
@@ -267,7 +277,6 @@ def main():
     except Exception as e:
         messagebox.showerror("Error", str(e))
 
-    #progress bar
     progress = tk.IntVar()
     progressbar = ttk.Progressbar(variable=progress)
     progressbar.pack(pady=10, fill=tk.X, padx=20)
