@@ -18,7 +18,7 @@ class StringArt:
         
         self.height = min(image.shape)
         self.numpoints = 4*60
-        self.maxvalue = 50
+        self.maxvalue = 12
         self.factor = self.maxvalue/256
         self.circle = []
         self.cache = {}
@@ -123,8 +123,9 @@ class StringArt:
         progress.set(0)                 
         while currSum > 0:
             counter+=1
-            print(counter, ": ", constSum-currSum, " / ", constSum, "   (", 100*(constSum-currSum)/constSum, "% )")
-            progress.set(100*(constSum-currSum)/constSum)
+            if counter % 100 == 0:
+                progress.set(100*(constSum-currSum)/constSum)
+                print(counter, ": ", currSum, "   (", 100*(constSum-currSum)/constSum, "% )")
             root.update_idletasks()
             tmaxSum, tlinePoints, line, nextPoint = self.bestLineFromPoint(pointIndex=pointIndex, cache=cache, instructions=instructions)
             instructions.append((pointIndex, nextPoint))

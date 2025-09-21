@@ -31,19 +31,21 @@ It takes an image, simplifies it into a grayscale intensity map, and then iterat
 Run the main script:
 
 ```bash
-python string_art.py
+python LinesAndDotsTest.py
 ```
 
-* By default, it loads `Pablo1.jpg` (replace with your own image).
-* The program processes the image, generates circle points, and finds the best sequence of lines.
-* The final string art visualization will be displayed with `matplotlib`.
-* It will prompt you to save the **list of line instructions**.
+This will launch a graphical user interface (GUI) for generating string art from images.
 
-To watch the artwork appear line by line:
+### Workflow
 
-```python
-animate()
-```
+1. **Select Image**: Click the "Select .jpg File" button to choose an image file for processing.
+2. **Adjust Line Width**: Use the "Line Width" slider to set the thickness of the lines before or after generating the plot.
+3. **Generate String Art**: The program will process the image, generate circle points, and display the string art visualization in a matplotlib window.
+4. **Update Line Width**: After the plot is generated, you can further adjust the line thickness by moving the slider and clicking the "Update Line Width" button in the main window. The plot will update in real time.
+5. **Export Instructions**: After generation, you can save the list of line instructions for physical recreation by clicking the "Instructions" button in the success dialog.
+6. **Regenerate from Instructions**: Use the "Regenerate" button to load a previously saved instructions file and visualize the corresponding string art.
+
+The interface also includes a progress bar to indicate processing status and an exit button to close the application.
 
 ---
 
