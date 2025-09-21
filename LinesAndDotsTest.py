@@ -5,7 +5,7 @@ from skimage.draw import line as bresenham_line
 import numpy as np
 from numpy import cos, sin
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, ttk, messagebox
 import os
 
 class StringArt:
@@ -97,7 +97,7 @@ class StringArt:
         return maxSum, linePoints, linePixels, nextPoint
 
     def generateLines(self, cache):
-        global image
+        global image, progress
         pointIndex = -1
         maxSum = -np.infty
         cc, rr = None, None
@@ -118,17 +118,21 @@ class StringArt:
         #yield linePoints, instructions
 
         counter = 0
-        csum = np.sum(image)
-        while csum > 0:
+        currSum = np.sum(image)
+        constSum = currSum
+        progress.set(0)                 
+        while currSum > 0:
             counter+=1
-            print(counter, ": ", csum)
+            print(counter, ": ", constSum-currSum, " / ", constSum, "   (", 100*(constSum-currSum)/constSum, "% )")
+            progress.set(100*(constSum-currSum)/constSum)
+            root.update_idletasks()
             tmaxSum, tlinePoints, line, nextPoint = self.bestLineFromPoint(pointIndex=pointIndex, cache=cache, instructions=instructions)
             instructions.append((pointIndex, nextPoint))
             linePoints = tlinePoints
             cc, rr = line
             pointIndex = nextPoint
             self.subtractLine(cc, rr)
-            csum = np.sum(image)
+            currSum = np.sum(image)
             res.append(linePoints)
         #yield linePoints, instructions
         return res, instructions
@@ -206,6 +210,8 @@ def plotFromInstructions():
     plt.show()
 
 def plotStringArt():
+    global progress
+    progress.set(0)
     file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.jpg")])
     sa = StringArt(file_path)
     #sa = StringArt("Pablo1.jpg")
@@ -218,8 +224,14 @@ def plotStringArt():
     ax.set_aspect('equal')
 
     lines, instructions = sa.generateLines(sa.cache)
-     
+
+    progress.set(100)
+    root.update_idletasks()
+    
     sa.generateInstructions(instructions)
+        
+    
+    
 
     plt.axis('off')
     for x, y in lines:
@@ -230,29 +242,39 @@ def plotStringArt():
 
 def exit_program():
     root.destroy()
+    quit()
 
 def main():
-    global root
-    root = tk.Tk()
-    root.title("String Art Generator")
-    
-    title_label = tk.Label(root, text="String Art Generator", font=("Helvetica", 16, "bold"))
-    title_label.pack(pady=10)
-    
-    button_frame = tk.Frame(root)
-    button_frame.pack(pady=20)
-    
-    instructions_button = tk.Button(button_frame, text="Regenerate", command=plotFromInstructions, width=15)
-    instructions_button.pack(side=tk.LEFT, padx=10)
-    
-    select_button = tk.Button(button_frame, text="Select .jpg File", command=plotStringArt, width=15, bg="green", fg="white")
-    select_button.pack(side=tk.LEFT, padx=10)
-    
-    exit_button = tk.Button(button_frame, text="Exit", command=exit_program, width=15, bg="red", fg="white")
-    exit_button.pack(side=tk.LEFT, padx=10)
+    try:
+        global root, progress
+        root = tk.Tk()
+        root.title("String Art Generator")
+        
+        title_label = tk.Label(root, text="String Art Generator", font=("Helvetica", 16, "bold"))
+        title_label.pack(pady=10)
+        
+        button_frame = tk.Frame(root)
+        button_frame.pack(pady=20)
+        
+        instructions_button = tk.Button(button_frame, text="Regenerate", command=plotFromInstructions, width=15)
+        instructions_button.pack(side=tk.LEFT, padx=10)
+        
+        select_button = tk.Button(button_frame, text="Select .jpg File", command=plotStringArt, width=15, bg="green", fg="white")
+        select_button.pack(side=tk.LEFT, padx=10)
+        
+        exit_button = tk.Button(button_frame, text="Exit", command=exit_program, width=15, bg="red", fg="white")
+        exit_button.pack(side=tk.LEFT, padx=10)
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
+
+    #progress bar
+    progress = tk.IntVar()
+    progressbar = ttk.Progressbar(variable=progress)
+    progressbar.pack(pady=10, fill=tk.X, padx=20)
+
+
         
     root.mainloop()
 
 if __name__ == "__main__":
-    #main()
     main()
