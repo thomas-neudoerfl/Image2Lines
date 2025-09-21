@@ -7,6 +7,7 @@ from numpy import cos, sin
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
 import os
+from skimage.transform import resize
 
 class StringArt:
     def __init__(self, img_path):
@@ -25,6 +26,11 @@ class StringArt:
 
     def cleanImage(self):
         global image
+        if self.height > 300:
+            scale = 300 / self.height
+            new_size = (int(image.shape[0] * scale), int(image.shape[1] * scale))
+            image = resize(image, new_size, preserve_range=True, anti_aliasing=True).astype(image.dtype)
+            self.height = min(image.shape)
         for i in range(self.height):
             for j in range(self.height):
                 x, y = self.mapIndicesToCoords(i, j)
