@@ -135,6 +135,16 @@ class StringArt:
         with open(filePath, 'w') as file:
             file.write(str(instructions))
 
+    def generateFromInstructions(self, instructions, cache):
+        lines = []
+        for (i, j) in instructions:
+            rr, cc = cache[(min(i, j), max(i, j))]
+            self.subtractLine(rr, cc)
+            x0, y0 = self.circle[i]
+            x1, y1 = self.circle[j]
+            lines.append((([x0, x1]), ([y0, y1])))
+        return lines
+
 def animate():
     sa = StringArt("Pablo1.jpg")
     #sa = StringArt("BlackWhiteHeartTest.jpg")
@@ -168,6 +178,29 @@ def animate():
     ani = FuncAnimation(fig, update, blit=True, interval=50, repeat=False)
     plt.show()
 
+def plotFromInstructions():
+    sa = StringArt("Pablo1.jpg")
+    #sa = StringArt("BlackWhiteHeartTest.jpg")
+    sa.cleanImage()
+    sa.circle = sa.generateCircle(numpoints=sa.numpoints)
+    sa.cache = sa.precomputeLines()
+
+    filePath = filedialog.askopenfilename(filetypes=[("Text files", "*.txt")])
+    with open(filePath, 'r') as file:
+        instructions = eval(file.read())
+
+    fig, ax = plt.subplots()
+    ax.set_aspect('equal')
+
+    lines = sa.generateFromInstructions(instructions, sa.cache)
+
+    plt.axis('off')
+    for x, y in lines:
+        plt.plot(x, y, color='black', linewidth=0.1)
+    for (x, y) in sa.circle:
+        plt.plot(x, y, 'bo')
+    plt.show()
+
 def main():
     sa = StringArt("Pablo1.jpg")
     #sa = StringArt("BlackWhiteHeartTest.jpg")
@@ -191,4 +224,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    #main()
+    plotFromInstructions()
