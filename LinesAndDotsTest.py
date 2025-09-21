@@ -4,12 +4,15 @@ from matplotlib.animation import FuncAnimation
 from skimage.draw import line as bresenham_line
 import numpy as np
 from numpy import cos, sin
+import tkinter as tk
 from tkinter import filedialog
 import os
 
 class StringArt:
     def __init__(self, img_path):
         global image
+        if not os.path.isfile(img_path):
+            raise ValueError("Invalid image path provided.")
         img = mpimg.imread(img_path)
         image = np.dot(img[..., :3], [0.2989, 0.5870, 0.1140])
         
@@ -179,7 +182,8 @@ def animate():
     plt.show()
 
 def plotFromInstructions():
-    sa = StringArt("Pablo1.jpg")
+    file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.jpg")])
+    sa = StringArt(file_path)
     #sa = StringArt("BlackWhiteHeartTest.jpg")
     sa.cleanImage()
     sa.circle = sa.generateCircle(numpoints=sa.numpoints)
@@ -201,8 +205,10 @@ def plotFromInstructions():
         plt.plot(x, y, 'bo')
     plt.show()
 
-def main():
-    sa = StringArt("Pablo1.jpg")
+def plotStringArt():
+    file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.jpg")])
+    sa = StringArt(file_path)
+    #sa = StringArt("Pablo1.jpg")
     #sa = StringArt("BlackWhiteHeartTest.jpg")
     sa.cleanImage()
     sa.circle = sa.generateCircle(numpoints=sa.numpoints)
@@ -222,7 +228,31 @@ def main():
         plt.plot(x, y, 'bo')
     plt.show()    
 
+def exit_program():
+    root.destroy()
+
+def main():
+    global root
+    root = tk.Tk()
+    root.title("String Art Generator")
+    
+    title_label = tk.Label(root, text="String Art Generator", font=("Helvetica", 16, "bold"))
+    title_label.pack(pady=10)
+    
+    button_frame = tk.Frame(root)
+    button_frame.pack(pady=20)
+    
+    instructions_button = tk.Button(button_frame, text="Regenerate", command=plotFromInstructions, width=15)
+    instructions_button.pack(side=tk.LEFT, padx=10)
+    
+    select_button = tk.Button(button_frame, text="Select .jpg File", command=plotStringArt, width=15, bg="green", fg="white")
+    select_button.pack(side=tk.LEFT, padx=10)
+    
+    exit_button = tk.Button(button_frame, text="Exit", command=exit_program, width=15, bg="red", fg="white")
+    exit_button.pack(side=tk.LEFT, padx=10)
+        
+    root.mainloop()
 
 if __name__ == "__main__":
     #main()
-    plotFromInstructions()
+    main()
