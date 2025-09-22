@@ -19,6 +19,8 @@ class StringArt:
         
         self.height = min(image.shape)
         self.numpoints = 4*60
+        self.numlines = 3000
+        self.resolution = 288
         self.maxvalue = 12
         self.factor = self.maxvalue/256
         self.circle = []
@@ -26,8 +28,8 @@ class StringArt:
 
     def cleanImage(self):
         global image
-        if self.height > 300:
-            scale = 300 / self.height
+        if self.height > self.resolution:
+            scale = self.resolution / self.height
             new_size = (int(image.shape[0] * scale), int(image.shape[1] * scale))
             image = resize(image, new_size, preserve_range=True, anti_aliasing=True).astype(image.dtype)
             self.height = min(image.shape)
@@ -127,7 +129,7 @@ class StringArt:
         currSum = np.sum(image)
         constSum = currSum
         progress.set(0)                 
-        while currSum > 0:
+        while counter < self.numlines and currSum > 0:
             counter+=1
             if counter % 100 == 0:
                 progress.set(100*(constSum-currSum)/constSum)
@@ -217,10 +219,15 @@ def plotFromInstructions():
 
 
 def plotStringArt():
-    global progress, linewidth_var, line_objects, fig
+    global progress, linewidth_var, line_objects, fig, numlines_var, resolution_var, numpoints_var
+
+    
     progress.set(0)
-    file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.jpg")])
+    file_path = filedialog.askopenfilename(filetypes=[("Image Files", ["*.jpg", "*.jpeg", "*.png"])])
     sa = StringArt(file_path)
+    sa.numlines = numlines_var.get()
+    sa.resolution = resolution_var.get()
+    sa.numpoints = numpoints_var.get()
     sa.cleanImage()
     sa.circle = sa.generateCircle(numpoints=sa.numpoints)
     sa.cache = sa.precomputeLines()
@@ -285,7 +292,7 @@ def update_main_linewidth():
 
 def main():
         
-    global root, progress, linewidth_var, line_objects, fig
+    global root, progress, linewidth_var, line_objects, fig, numlines_var, resolution_var, numpoints_var
     root = tk.Tk()
     root.title("String Art Generator")
     
@@ -303,6 +310,24 @@ def main():
     
     exit_button = tk.Button(button_frame, text="Exit", command=exit_program, width=15, bg="red", fg="white")
     exit_button.pack(side=tk.LEFT, padx=10)
+
+    numpoints_var = tk.IntVar(value=240)
+    numpoints_label = tk.Label(root, text="Number of Points:")
+    numpoints_label.pack()
+    numpoints_slider = tk.Scale(root, variable=numpoints_var, from_=10, to=1000, resolution=10, orient=tk.HORIZONTAL)
+    numpoints_slider.pack(fill=tk.X, padx=20)
+
+    resolution_var = tk.IntVar(value=288)
+    resolution_label = tk.Label(root, text="Resolution:")
+    resolution_label.pack()
+    resolution_slider = tk.Scale(root, variable=resolution_var, from_=10, to=1000, resolution=10, orient=tk.HORIZONTAL)
+    resolution_slider.pack(fill=tk.X, padx=20)
+
+    numlines_var = tk.IntVar(value=3000)
+    numlines_label = tk.Label(root, text="Number of Lines:")
+    numlines_label.pack()
+    numlines_slider = tk.Scale(root, variable=numlines_var, from_=100, to=10000, resolution=100, orient=tk.HORIZONTAL)
+    numlines_slider.pack(fill=tk.X, padx=20)
 
     linewidth_var = tk.DoubleVar(value=0.1)
     linewidth_label = tk.Label(root, text="Line Width:")
