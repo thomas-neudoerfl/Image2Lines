@@ -5,7 +5,7 @@ from skimage.draw import line as bresenham_line
 import numpy as np
 from numpy import cos, sin
 import tkinter as tk
-from tkinter import filedialog, ttk, messagebox
+from tkinter import filedialog, ttk
 import os
 from skimage.transform import resize
 import threading
