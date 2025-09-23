@@ -8,6 +8,7 @@ import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
 import os
 from skimage.transform import resize
+import threading
 
 class StringArt:
     def __init__(self, img_path):
@@ -126,18 +127,18 @@ class StringArt:
         #yield linePoints, instructions
 
         counter = 0
-        currSum = np.sum(image)
-        constSum = currSum
         progress.set(0)                 
-        while counter < self.numlines and currSum > 0:
+        while counter < self.numlines and counter < self.numpoints*(self.numpoints-1)/2:
             counter+=1
             if counter % 100 == 0:
-                progress.set(100*(constSum-currSum)/constSum)
-                print(counter, ": ", currSum, "   (", 100*(constSum-currSum)/constSum, "% )")
+                progress.set((counter/self.numlines)*100)
+                print(counter/self.numlines)
             root.update_idletasks()
             tmaxSum, tlinePoints, line, nextPoint = self.bestLineFromPoint(pointIndex=pointIndex, cache=cache, instructions=instructions)
             instructions.append((pointIndex, nextPoint))
             linePoints = tlinePoints
+            if not line or len(line) != 2 or len(line[0]) == 0 or len(line[1]) == 0:
+                break
             cc, rr = line
             pointIndex = nextPoint
             self.subtractLine(cc, rr)
@@ -220,67 +221,55 @@ def plotFromInstructions():
 
 def plotStringArt():
     global progress, linewidth_var, line_objects, fig, numlines_var, resolution_var, numpoints_var
-
-    
-    progress.set(0)
-    file_path = filedialog.askopenfilename(filetypes=[("Image Files", ["*.jpg", "*.jpeg", "*.png"])])
-    sa = StringArt(file_path)
-    sa.numlines = numlines_var.get()
-    sa.resolution = resolution_var.get()
-    sa.numpoints = numpoints_var.get()
-    sa.cleanImage()
-    sa.circle = sa.generateCircle(numpoints=sa.numpoints)
-    sa.cache = sa.precomputeLines()
-
-    fig, ax = plt.subplots()
-    ax.set_aspect('equal')
-
-    lines, instructions = sa.generateLines(sa.cache)
-
-    progress.set(100)
-    root.update_idletasks()
-
-    def openInstructions():
-        sa.generateInstructions(instructions)
-
-    success_dialog = tk.Toplevel()
-    success_dialog.title("Success")
-
-    path_label = tk.Label(success_dialog, text=f"Generate instructions", wraplength=400)
-    path_label.pack(pady=10)
-
-    button_frame = tk.Frame(success_dialog)
-    button_frame.pack(pady=10)
-
-    open_button = tk.Button(button_frame, text="Instructions", command=openInstructions)
-    open_button.pack(side=tk.LEFT, padx=10)
-
-    close_button = tk.Button(button_frame, text="Close", command=success_dialog.destroy)
-    close_button.pack(side=tk.RIGHT, padx=10)
-
-    plt.axis('off')
-    lw = linewidth_var.get()
-    line_objects = []
-    for x, y in lines:
-        line, = ax.plot(x, y, color='black', linewidth=lw)
-        line_objects.append(line)
-    for (x, y) in sa.circle:
-        ax.plot(x, y, 'bo')
-    plt.show()
-
-    def update_linewidth():
-        new_lw = linewidth_var.get()
-        for line in line_objects:
-            line.set_linewidth(new_lw)
-        fig.canvas.draw_idle()
-
-    update_button = tk.Button(success_dialog, text="Update Line Width", command=update_linewidth)
-    update_button.pack(pady=10)
-
-    progress.set(0)
-    root.update_idletasks()
-
-
+    def worker():
+        file_path = filedialog.askopenfilename(filetypes=[("Image Files", ["*.jpg", "*.jpeg", "*.png"])] )
+        sa = StringArt(file_path)
+        sa.numlines = numlines_var.get()
+        sa.resolution = resolution_var.get()
+        sa.numpoints = numpoints_var.get()
+        sa.cleanImage()
+        sa.circle = sa.generateCircle(numpoints=sa.numpoints)
+        sa.cache = sa.precomputeLines()
+        def update_progress(val):
+            progress.set(val)
+            root.update_idletasks()
+        global progress
+        old_progress_set = progress.set
+        def patched_set(val):
+            root.after(0, lambda: old_progress_set(val))
+        progress.set = patched_set
+        lines, instructions = sa.generateLines(sa.cache)
+        progress.set = old_progress_set
+        root.after(0, lambda: show_results(lines, instructions, sa))
+    def show_results(lines, instructions, sa):
+        global line_objects, fig, linewidth_var
+        fig, ax = plt.subplots()
+        ax.set_aspect('equal')
+        plt.axis('off')
+        lw = linewidth_var.get()
+        line_objects = []
+        for x, y in lines:
+            line, = ax.plot(x, y, color='black', linewidth=lw)
+            line_objects.append(line)
+        for (x, y) in sa.circle:
+            ax.plot(x, y, 'bo')
+        plt.show()
+        success_dialog = tk.Toplevel()
+        success_dialog.title("Success")
+        path_label = tk.Label(success_dialog, text=f"Generate instructions", wraplength=400)
+        path_label.pack(pady=10)
+        button_frame = tk.Frame(success_dialog)
+        button_frame.pack(pady=10)
+        def openInstructions():
+            sa.generateInstructions(instructions)
+            success_dialog.destroy()
+        open_button = tk.Button(button_frame, text="Instructions", command=openInstructions)
+        open_button.pack(side=tk.LEFT, padx=10)
+        close_button = tk.Button(button_frame, text="Close", command=success_dialog.destroy)
+        close_button.pack(side=tk.RIGHT, padx=10)
+        progress.set(0)
+        root.update_idletasks()
+    threading.Thread(target=worker).start()
 
 def update_main_linewidth():
     global line_objects, fig, linewidth_var
@@ -288,6 +277,14 @@ def update_main_linewidth():
         new_lw = linewidth_var.get()
         for line in line_objects:
             line.set_linewidth(new_lw)
+        fig.canvas.draw_idle()
+
+def update_main_numlines():
+    global line_objects, fig, numlines_var
+    if line_objects and fig:
+        num_lines = numlines_var.get()
+        for idx, line in enumerate(line_objects):
+            line.set_visible(idx < num_lines)
         fig.canvas.draw_idle()
 
 def main():
@@ -314,29 +311,95 @@ def main():
     numpoints_var = tk.IntVar(value=240)
     numpoints_label = tk.Label(root, text="Number of Points:")
     numpoints_label.pack()
-    numpoints_slider = tk.Scale(root, variable=numpoints_var, from_=10, to=1000, resolution=10, orient=tk.HORIZONTAL)
-    numpoints_slider.pack(fill=tk.X, padx=20)
+    numpoints_frame = tk.Frame(root)
+    numpoints_frame.pack(fill=tk.X, padx=20)
+    numpoints_slider = tk.Scale(numpoints_frame, variable=numpoints_var, from_=10, to=1000, resolution=1, orient=tk.HORIZONTAL)
+    numpoints_slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
+    numpoints_entry = tk.Entry(numpoints_frame, width=6)
+    numpoints_entry.pack(side=tk.RIGHT)
+    numpoints_entry.insert(0, str(numpoints_var.get()))
+    def update_numpoints_from_entry(event):
+        try:
+            val = int(numpoints_entry.get())
+            numpoints_var.set(val)
+        except ValueError:
+            pass
+    numpoints_entry.bind('<Return>', update_numpoints_from_entry)
+    def update_numpoints_entry(*args):
+        numpoints_entry.delete(0, tk.END)
+        numpoints_entry.insert(0, str(numpoints_var.get()))
+    numpoints_var.trace_add('write', update_numpoints_entry)
 
     resolution_var = tk.IntVar(value=288)
     resolution_label = tk.Label(root, text="Resolution:")
     resolution_label.pack()
-    resolution_slider = tk.Scale(root, variable=resolution_var, from_=10, to=1000, resolution=10, orient=tk.HORIZONTAL)
-    resolution_slider.pack(fill=tk.X, padx=20)
+    resolution_frame = tk.Frame(root)
+    resolution_frame.pack(fill=tk.X, padx=20)
+    resolution_slider = tk.Scale(resolution_frame, variable=resolution_var, from_=10, to=1000, resolution=10, orient=tk.HORIZONTAL)
+    resolution_slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
+    resolution_entry = tk.Entry(resolution_frame, width=6)
+    resolution_entry.pack(side=tk.RIGHT)
+    resolution_entry.insert(0, str(resolution_var.get()))
+    def update_resolution_from_entry(event):
+        try:
+            val = int(resolution_entry.get())
+            resolution_var.set(val)
+        except ValueError:
+            pass
+    resolution_entry.bind('<Return>', update_resolution_from_entry)
+    def update_resolution_entry(*args):
+        resolution_entry.delete(0, tk.END)
+        resolution_entry.insert(0, str(resolution_var.get()))
+    resolution_var.trace_add('write', update_resolution_entry)
 
     numlines_var = tk.IntVar(value=3000)
     numlines_label = tk.Label(root, text="Number of Lines:")
     numlines_label.pack()
-    numlines_slider = tk.Scale(root, variable=numlines_var, from_=100, to=10000, resolution=100, orient=tk.HORIZONTAL)
-    numlines_slider.pack(fill=tk.X, padx=20)
+    numlines_frame = tk.Frame(root)
+    numlines_frame.pack(fill=tk.X, padx=20)
+    numlines_slider = tk.Scale(numlines_frame, variable=numlines_var, from_=1, to=10000, resolution=10, orient=tk.HORIZONTAL)
+    numlines_slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
+    numlines_entry = tk.Entry(numlines_frame, width=6)
+    numlines_entry.pack(side=tk.RIGHT)
+    numlines_entry.insert(0, str(numlines_var.get()))
+    def update_numlines_from_entry(event):
+        try:
+            val = int(numlines_entry.get())
+            numlines_var.set(val)
+        except ValueError:
+            pass
+    numlines_entry.bind('<Return>', update_numlines_from_entry)
+    def update_numlines_entry(*args):
+        numlines_entry.delete(0, tk.END)
+        numlines_entry.insert(0, str(numlines_var.get()))
+    numlines_var.trace_add('write', update_numlines_entry)
 
     linewidth_var = tk.DoubleVar(value=0.1)
     linewidth_label = tk.Label(root, text="Line Width:")
     linewidth_label.pack()
-    linewidth_slider = tk.Scale(root, variable=linewidth_var, from_=0.01, to=2.0, resolution=0.01, orient=tk.HORIZONTAL)
-    linewidth_slider.pack(fill=tk.X, padx=20)
+    linewidth_frame = tk.Frame(root)
+    linewidth_frame.pack(fill=tk.X, padx=20)
+    linewidth_slider = tk.Scale(linewidth_frame, variable=linewidth_var, from_=0.01, to=2.0, resolution=0.01, orient=tk.HORIZONTAL)
+    linewidth_slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
+    linewidth_entry = tk.Entry(linewidth_frame, width=6)
+    linewidth_entry.pack(side=tk.RIGHT)
+    linewidth_entry.insert(0, str(linewidth_var.get()))
+    def update_linewidth_from_entry(event):
+        try:
+            val = float(linewidth_entry.get())
+            linewidth_var.set(val)
+        except ValueError:
+            pass
+    linewidth_entry.bind('<Return>', update_linewidth_from_entry)
+    def update_linewidth_entry(*args):
+        linewidth_entry.delete(0, tk.END)
+        linewidth_entry.insert(0, str(linewidth_var.get()))
+    linewidth_var.trace_add('write', update_linewidth_entry)
 
     update_main_lw_button = tk.Button(root, text="Update Line Width", command=update_main_linewidth)
     update_main_lw_button.pack(pady=5)
+    update_main_numlines_button = tk.Button(root, text="Update Number of Lines", command=update_main_numlines)
+    update_main_numlines_button.pack(pady=5)
 
     progress = tk.IntVar()
     progressbar = ttk.Progressbar(variable=progress)
