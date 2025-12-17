@@ -12,11 +12,13 @@ import threading
 
 class StringArt:
     def __init__(self, img_path):
-        global image
+        global image, real_radius, total_length
         if not os.path.isfile(img_path):
             raise ValueError("Invalid image path provided.")
         img = mpimg.imread(img_path)
         image = np.dot(img[..., :3], [0.2989, 0.5870, 0.1140])
+        real_radius = 20.6
+        total_length = 0
         
         self.height = min(image.shape)
         self.numpoints = 4*60
@@ -87,7 +89,7 @@ class StringArt:
         return np.mean(image[rr, cc]) if len(rr) > 0 else -np.inf  
 
     def bestLineFromPoint(self, pointIndex, minIndex = 0, cache=[], instructions= []):
-        maxSum = -np.infty
+        maxSum = -np.inf
         linePoints = (([0, 0]), ([0, 0]))
         linePixels = []
         nextPoint = -1
@@ -105,10 +107,17 @@ class StringArt:
                 nextPoint = j
         return maxSum, linePoints, linePixels, nextPoint
 
+    def UpdateRealLengthOfLine(self, LinePoints):
+        global real_radius, total_length
+        x0, x1 = LinePoints[0]
+        y0, y1 = LinePoints[1]
+        length = np.sqrt((x1 - x0)**2 + (y1 - y0)**2) * real_radius
+        total_length += length
+    
     def generateLines(self, cache):
         global image, progress
         pointIndex = -1
-        maxSum = -np.infty
+        maxSum = -np.inf
         cc, rr = None, None
         startIndex = None
         instructions = []
@@ -122,6 +131,8 @@ class StringArt:
                 pointIndex = nextPoint
                 startIndex = i
         res.append(linePoints)
+        self.UpdateRealLengthOfLine(linePoints)
+        print(linePoints)
         self.subtractLine(cc, rr)
         instructions.append((startIndex, pointIndex))
         #yield linePoints, instructions
@@ -142,8 +153,9 @@ class StringArt:
             cc, rr = line
             pointIndex = nextPoint
             self.subtractLine(cc, rr)
-            currSum = np.sum(image)
+            #currSum = np.sum(image)
             res.append(linePoints)
+            self.UpdateRealLengthOfLine(linePoints)
         #yield linePoints, instructions
         return res, instructions
 
@@ -220,7 +232,7 @@ def plotFromInstructions():
 
 
 def plotStringArt():
-    global progress, linewidth_var, line_objects, fig, numlines_var, resolution_var, numpoints_var
+    global progress, linewidth_var, line_objects, fig, numlines_var, resolution_var, numpoints_var, total_length
     def worker():
         file_path = filedialog.askopenfilename(filetypes=[("Image Files", ["*.jpg", "*.jpeg", "*.png"])] )
         sa = StringArt(file_path)
@@ -243,6 +255,7 @@ def plotStringArt():
         root.after(0, lambda: show_results(lines, instructions, sa))
     def show_results(lines, instructions, sa):
         global line_objects, fig, linewidth_var
+        print(f"Total length of string used: {total_length:.2f} cm")
         fig, ax = plt.subplots()
         ax.set_aspect('equal')
         plt.axis('off')
@@ -289,7 +302,7 @@ def update_main_numlines():
 
 def main():
         
-    global root, progress, linewidth_var, line_objects, fig, numlines_var, resolution_var, numpoints_var
+    global root, progress, linewidth_var, line_objects, fig, numlines_var, resolution_var, numpoints_var, total_length
     root = tk.Tk()
     root.title("String Art Generator")
     
