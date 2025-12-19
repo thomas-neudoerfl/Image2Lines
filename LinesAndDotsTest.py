@@ -210,6 +210,9 @@ def exit_program():
 def plotFromInstructions():
     file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.jpg")])
     sa = StringArt(file_path)
+    sa.numlines = numlines_var.get()
+    sa.resolution = resolution_var.get()
+    sa.numpoints = numpoints_var.get()
     sa.cleanImage()
     sa.circle = sa.generateCircle(numpoints=sa.numpoints)
     sa.cache = sa.precomputeLines()
