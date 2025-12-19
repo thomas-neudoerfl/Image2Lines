@@ -11,16 +11,20 @@ from skimage.transform import resize
 import threading
 
 class StringArt:
-    def __init__(self, img_path):
+    def __init__(self, from_instructions=False):
         global image, real_radius, total_length
-        if not os.path.isfile(img_path):
-            raise ValueError("Invalid image path provided.")
-        img = mpimg.imread(img_path)
-        image = np.dot(img[..., :3], [0.2989, 0.5870, 0.1140])
+        if not from_instructions:
+            img_path = filedialog.askopenfilename(filetypes=[("Image Files", ["*.jpg", "*.jpeg", "*.png"])] )
+            img = mpimg.imread(img_path)
+            image = np.dot(img[..., :3], [0.2989, 0.5870, 0.1140])
+            self.height = min(image.shape)
+        else:
+            print("Invalid image path provided.")
+            img, image = None, None
+            self.height = 1
+
         real_radius = 20.6
         total_length = 0
-        
-        self.height = min(image.shape)
         self.numpoints = 4*60
         self.numlines = 3000
         self.resolution = 288
@@ -164,67 +168,33 @@ class StringArt:
         with open(filePath, 'w') as file:
             file.write(str(instructions))
 
-    def generateFromInstructions(self, instructions, cache):
+    def generateFromInstructions(self, instructions):
         lines = []
         for (i, j) in instructions:
-            rr, cc = cache[(min(i, j), max(i, j))]
-            self.subtractLine(rr, cc)
             x0, y0 = self.circle[i]
             x1, y1 = self.circle[j]
             lines.append((([x0, x1]), ([y0, y1])))
         return lines
 
-def animate():
-    sa = StringArt("Pablo1.jpg")
-    sa.cleanImage()
-    sa.circle = sa.generateCircle(numpoints=sa.numpoints)
-    sa.cache = sa.precomputeLines()
-
-    fig, ax = plt.subplots()
-    ax.set_aspect('equal')
-    plt.axis('off')
-
-    for (x, y) in sa.circle:
-        ax.plot(x, y, 'bo', markersize=2)
-
-    line_generator = sa.generateLines(sa.cache)
-
-    drawn_lines = []
-
-    def update(frame):
-        try:
-            x, y = next(line_generator) 
-            line, = ax.plot(x, y, color='black', linewidth=0.08)
-            drawn_lines.append(line)
-            return drawn_lines
-        except StopIteration:
-            return drawn_lines
-
-    ani = FuncAnimation(fig, update, blit=True, interval=50, repeat=False)
-    plt.show()
 
 def exit_program():
     root.destroy()
     quit()
     
 def plotFromInstructions():
-    file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.jpg")])
-    sa = StringArt(file_path)
-    sa.numlines = numlines_var.get()
-    sa.resolution = resolution_var.get()
-    sa.numpoints = numpoints_var.get()
-    sa.cleanImage()
-    sa.circle = sa.generateCircle(numpoints=sa.numpoints)
-    sa.cache = sa.precomputeLines()
-
+    sa = StringArt(True)
+    
     filePath = filedialog.askopenfilename(filetypes=[("Text files", "*.txt")])
     with open(filePath, 'r') as file:
         instructions = eval(file.read())
+    sa.numlines = instructions.__len__()
+    sa.numpoints = max(max(i, j) for (i, j) in instructions) + 1
 
+    sa.circle = sa.generateCircle(numpoints=sa.numpoints)
     fig, ax = plt.subplots()
     ax.set_aspect('equal')
 
-    lines = sa.generateFromInstructions(instructions, sa.cache)
+    lines = sa.generateFromInstructions(instructions)
 
     plt.axis('off')
     for x, y in lines:
@@ -237,8 +207,7 @@ def plotFromInstructions():
 def plotStringArt():
     global progress, linewidth_var, line_objects, fig, numlines_var, resolution_var, numpoints_var, total_length
     def worker():
-        file_path = filedialog.askopenfilename(filetypes=[("Image Files", ["*.jpg", "*.jpeg", "*.png"])] )
-        sa = StringArt(file_path)
+        sa = StringArt()
         sa.numlines = numlines_var.get()
         sa.resolution = resolution_var.get()
         sa.numpoints = numpoints_var.get()
@@ -373,7 +342,7 @@ def main():
     numlines_label.pack()
     numlines_frame = tk.Frame(root)
     numlines_frame.pack(fill=tk.X, padx=20)
-    numlines_slider = tk.Scale(numlines_frame, variable=numlines_var, from_=1, to=10000, resolution=10, orient=tk.HORIZONTAL)
+    numlines_slider = tk.Scale(numlines_frame, variable=numlines_var, from_=0, to=10000, resolution=10, orient=tk.HORIZONTAL)
     numlines_slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
     numlines_entry = tk.Entry(numlines_frame, width=6)
     numlines_entry.pack(side=tk.RIGHT)
