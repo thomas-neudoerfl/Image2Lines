@@ -53,25 +53,32 @@ def format_instructions():
     print(f"Formatted instructions saved to {save_path}")
 
 def update_main_linewidth():
-    global instructions, fig, linewidth_var
-    if instructions and fig:
+    global line_objects, fig, linewidth_var
+    if line_objects and fig:
         new_lw = linewidth_var.get()
-        for line in instructions:
+        for line in line_objects:
             line.set_linewidth(new_lw)
         fig.canvas.draw_idle()
 
 def update_main_numlines():
-    global instructions, fig, numlines_var
-    if instructions and fig:
+    global line_objects, fig, numlines_var
+    if line_objects and fig:
         num_lines = numlines_var.get()
-        for idx, line in enumerate(instructions):
+        for idx, line in enumerate(line_objects):
             line.set_visible(idx < num_lines)
         fig.canvas.draw_idle()
 
         
 # Add a GUI that adds the last drawn line for visual feedback
 def draw_next_line():
-    global fig, linewidth_var, numlines_var, progress, instructions
+    global fig, lines, progress, numlines_var, linewidth_var, line_objects
+    if lines and fig:
+        current_lines = numlines_var.get() + 1
+        if current_lines < len(lines):
+            line_objects[current_lines].set_visible(True)
+            fig.canvas.draw_idle()
+            numlines_var.set(current_lines)
+            progress.set(int((current_lines) / len(lines) * 100))
     
 
 def exit_program():
@@ -80,7 +87,7 @@ def exit_program():
 
 def main():
         
-    global root, progress, linewidth_var, line_objects, fig, numlines_var, numpoints, instructions
+    global root, progress, linewidth_var, line_objects, fig, numlines_var, numpoints, instructions, lines
     
     root = tk.Tk()
     root.title("String Art Generator")
@@ -106,7 +113,7 @@ def main():
     numlines_label.pack()
     numlines_frame = tk.Frame(root)
     numlines_frame.pack(fill=tk.X, padx=20)
-    numlines_slider = tk.Scale(numlines_frame, variable=numlines_var, from_=0, to=10000, resolution=10, orient=tk.HORIZONTAL)
+    numlines_slider = tk.Scale(numlines_frame, variable=numlines_var, from_=0, to=10000, resolution=1, orient=tk.HORIZONTAL)
     numlines_slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
     numlines_entry = tk.Entry(numlines_frame, width=6)
     numlines_entry.pack(side=tk.RIGHT)
@@ -159,18 +166,24 @@ def main():
     with open(filePath, 'r') as file:
         instructions = eval(file.read())
 
-    numlines = instructions.__len__()
-    numpoints = max(max(i, j) for (i, j) in instructions) + 1
+    sa.numpoints = max(max(i, j) for (i, j) in instructions) + 1
 
     sa.circle = sa.generateCircle(numpoints=sa.numpoints)
     fig, ax = plt.subplots()
     ax.set_aspect('equal')
+    
+    lines = sa.generateFromInstructions(instructions)
+    line_objects = []
 
     plt.axis('off')
     for (x, y) in sa.circle:
         plt.plot(x, y, 'bo')
+    
+    for x, y in lines:
+            line, = ax.plot(x, y, color='black', linewidth=linewidth_var.get())
+            line_objects.append(line)
+            line.set_visible(False)
     plt.show()
-
     root.mainloop()
 
 if __name__ == "__main__":

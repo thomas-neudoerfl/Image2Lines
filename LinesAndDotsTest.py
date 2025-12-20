@@ -231,7 +231,7 @@ def plotStringArt():
         fig, ax = plt.subplots()
         ax.set_aspect('equal')
         plt.axis('off')
-        lw = linewidth_var.get()
+        lw = linewidth_var.get()    
         line_objects = []
         for x, y in lines:
             line, = ax.plot(x, y, color='black', linewidth=lw)
