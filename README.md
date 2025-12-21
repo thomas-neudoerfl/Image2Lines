@@ -21,7 +21,7 @@ It takes an image, simplifies it into a grayscale intensity map, and then iterat
 * Libraries:
 
   ```bash
-  pip install matplotlib scikit-image numpy tkinter
+  pip install matplotlib scikit-image numpy tkinter fpdf2
   ```
 
 ---
@@ -49,10 +49,41 @@ The interface also includes a progress bar to indicate processing status and an 
 
 ---
 
-## Example Output
+## Instructions.py - Interactive Line Viewer
+
+An interactive tool for visualizing and controlling string art line-by-line from previously saved instruction files.
+
+### Features
+
+* **Line-by-line Visualization**: Step through the string art one line at a time with the Next button or spacebar.
+* **Line Information Display**: Shows previous, current, and next line indices in real time.
+* **Line Control**: Adjust the number of visible lines via slider or direct entry.
+* **Line Width Adjustment**: Control line thickness dynamically.
+* **PDF Export**: Generate a formatted PDF document of all line instructions.
+* **Keyboard Shortcuts**:
+  - Space bar: Draw next line
+  - Escape: Exit the application
+
+### Usage
+
+Run the script:
+
+```bash
+python Instructions.py
+```
+
+1. **Load Instructions File**: Select a previously saved instructions text file.
+2. **Navigate Lines**: Click the "Next" button or press Space to advance through lines.
+3. **Adjust Display**: Use sliders or entry fields to control:
+   - Number of visible lines
+   - Line width/thickness
+4. **Generate PDF**: Click "Generate .pdf" to export all line instructions as a formatted PDF document.
+5. **Exit**: Click the "Exit" button or press Escape to close the application.
+
+The interface displays the previous, current, and next line in the sequence, helping you follow the string art construction process.
 
 * **Final drawing:** clean string art visualization.
-* **Animation:** progressive construction of the image.
+* **Animation:** progressive construction of the image if you hold the space bar.
 * **Instructions file:** a sequence of peg-to-peg connections for physical recreation.
 
 ---
