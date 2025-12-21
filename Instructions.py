@@ -1,14 +1,6 @@
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-from matplotlib.animation import FuncAnimation
-from skimage.draw import line as bresenham_line
-import numpy as np
-from numpy import cos, sin
 import tkinter as tk
 from tkinter import filedialog, ttk
-import os
-from skimage.transform import resize
-import threading
 from fpdf import FPDF
 from LinesAndDotsTest import StringArt
 
@@ -61,25 +53,41 @@ def update_main_linewidth():
         fig.canvas.draw_idle()
 
 def update_main_numlines():
-    global line_objects, fig, numlines_var
+    global line_objects, fig, numlines_var, previous_line, current_line, next_line, line_number
     if line_objects and fig:
         num_lines = numlines_var.get()
         for idx, line in enumerate(line_objects):
             line.set_visible(idx < num_lines)
+        progress.set(int((num_lines) / len(lines) * 100))
+        # Update previous, current, next line info
+        line_number = num_lines
+        previous_line = (instructions[line_number-2] if line_number-2 >=0 else (0,0))
+        current_line = (instructions[line_number-1] if line_number-1 >=0 and line_number-1 < len(instructions) else (0,0))
+        next_line = (instructions[line_number] if line_number < len(instructions) else (0,0))
+        update_line_label()
         fig.canvas.draw_idle()
 
         
 # Add a GUI that adds the last drawn line for visual feedback
 def draw_next_line():
-    global fig, lines, progress, numlines_var, linewidth_var, line_objects
+    global fig, lines, progress, numlines_var, linewidth_var, line_objects, previous_line, current_line, next_line, line_number
     if lines and fig:
         current_lines = numlines_var.get() + 1
         if current_lines < len(lines):
             line_objects[current_lines].set_visible(True)
             fig.canvas.draw_idle()
             numlines_var.set(current_lines)
+            line_number = current_lines
+            previous_line = current_line
+            current_line = next_line
+            next_line = (instructions[line_number] if line_number < len(instructions) else (0,0))
+            update_line_label()
             progress.set(int((current_lines) / len(lines) * 100))
     
+def update_line_label():
+        global line_number, previous_line, current_line, next_line, line_label 
+        label_text = f"{line_number-1}.:  {previous_line}; {line_number}.:   {current_line}; {line_number+1}.:   {next_line}"
+        line_label.config(text=label_text)
 
 def exit_program():
     root.destroy()
@@ -87,7 +95,7 @@ def exit_program():
 
 def main():
         
-    global root, progress, linewidth_var, line_objects, fig, numlines_var, numpoints, instructions, lines
+    global root, progress, linewidth_var, line_objects, fig, numlines_var, numpoints, instructions, lines, previous_line, current_line, next_line, line_number, line_label
     
     root = tk.Tk()
     root.title("String Art Generator")
@@ -98,14 +106,26 @@ def main():
     button_frame = tk.Frame(root)
     button_frame.pack(pady=20)
     
+    #add previous, current, and next line display
+    previous_line = (0,0)
+    current_line = (0,0)
+    next_line = (0,0)
+    line_number = 0
+    label_text = f"{line_number-1}.:  {previous_line}; {line_number}.:   {current_line}; {line_number+1}.:   {next_line}"
+    line_label = tk.Label(root, text=label_text, fg = "black",  font = "Arial 20 bold")
+    line_label.pack()
+    
+
     next_button = tk.Button(button_frame, text="Next", command=draw_next_line, width=15)
     next_button.pack(side=tk.LEFT, padx=10)
-    
+    root.bind('<space>', lambda event: draw_next_line())
+
     format_instructions_button = tk.Button(button_frame, text="Generate .pdf", command=format_instructions, width=15, bg="green", fg="white")
     format_instructions_button.pack(side=tk.LEFT, padx=10)
     
     exit_button = tk.Button(button_frame, text="Exit", command=exit_program, width=15, bg="red", fg="white")
     exit_button.pack(side=tk.LEFT, padx=10)
+    root.bind('<Escape>', lambda event: exit_program())
 
 
     numlines_var = tk.IntVar(value=0)
@@ -167,6 +187,12 @@ def main():
         instructions = eval(file.read())
 
     sa.numpoints = max(max(i, j) for (i, j) in instructions) + 1
+
+    #update line_number, previous_line, current_line, next_line based on instructions
+    previous_line = (instructions[line_number-2] if line_number-2 >=0 else (0,0))
+    current_line = (instructions[line_number-1] if line_number-1 >=0 else (0,0))
+    next_line = (instructions[line_number] if line_number < len(instructions) else (0,0))
+    update_line_label()
 
     sa.circle = sa.generateCircle(numpoints=sa.numpoints)
     fig, ax = plt.subplots()

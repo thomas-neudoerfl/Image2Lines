@@ -1,15 +1,12 @@
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-from matplotlib.animation import FuncAnimation
 from skimage.draw import line as bresenham_line
 import numpy as np
 from numpy import cos, sin
 import tkinter as tk
 from tkinter import filedialog, ttk
-import os
 from skimage.transform import resize
 import threading
-
 class StringArt:
     def __init__(self, from_instructions=False):
         global image, real_radius, total_length
