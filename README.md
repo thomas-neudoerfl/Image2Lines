@@ -43,7 +43,7 @@ This will launch a graphical user interface (GUI) for generating string art from
 3. **Generate String Art**: The program will process the image, generate circle points, and display the string art visualization in a matplotlib window.
 4. **Update Line Width**: After the plot is generated, you can further adjust the line thickness by moving the slider and clicking the "Update Line Width" button in the main window. The plot will update in real time.
 5. **Export Instructions**: After generation, you can save the list of line instructions for physical recreation by clicking the "Instructions" button in the success dialog.
-6. **Regenerate from Instructions**: Use the "Regenerate" button to load a previously saved instructions file and visualize the corresponding string art.
+6. **Regenerate from Instructions**: Use the "Regenerate" button to load a previously saved instructions file and visualize the corresponding string art. Instructions.py now includes more functionality, so I would recommend using this button only to check if the instructions were generated correctly.
 
 The interface also includes a progress bar to indicate processing status and an exit button to close the application.
 
